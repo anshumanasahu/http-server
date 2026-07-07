@@ -55,7 +55,11 @@ void Router::addProxyRoute(const std::string& prefix, const std::vector<std::pai
     ProxyRoute pr;
     pr.prefix = prefix;
     for (const auto& b : backends) {
-        pr.backends.push_back({b.first, b.second, true, {}});
+        auto backend = std::make_shared<Backend>();
+        backend->target_host = b.first;
+        backend->target_port = b.second;
+        backend->is_healthy = true;
+        pr.backends.push_back(backend);
     }
     proxy_routes.push_back(pr);
 }
@@ -90,7 +94,13 @@ Response Router::route(const Request& request) {
     bool handled = false;
 
     // 1. Check exact registered routes first
-    std::string key = request.method + " " + request.path;
+    std::string base_path = request.path;
+    size_t q_mark = base_path.find('?');
+    if (q_mark != std::string::npos) {
+        base_path = base_path.substr(0, q_mark);
+    }
+    
+    std::string key = request.method + " " + base_path;
     auto it = routes.find(key);
     if (it != routes.end()) {
         res = it->second(request);
@@ -127,13 +137,21 @@ Response Router::route(const Request& request) {
                     target /= "index.html";
                 }
                 if (fs::exists(target) && fs::is_regular_file(target)) {
-                    std::ifstream file(target, std::ios::binary);
-                    if (file.is_open()) {
-                        std::ostringstream ss;
-                        ss << file.rdbuf();
-                        res = Response(200, ss.str());
+                    if (auto cached = cache.get(target.string())) {
+                        res = Response(200, *cached);
                         res.headers["Content-Type"] = getMimeType(target.string());
                         handled = true;
+                    } else {
+                        std::ifstream file(target, std::ios::binary);
+                        if (file.is_open()) {
+                            std::ostringstream ss;
+                            ss << file.rdbuf();
+                            std::string content = ss.str();
+                            cache.put(target.string(), content);
+                            res = Response(200, content);
+                            res.headers["Content-Type"] = getMimeType(target.string());
+                            handled = true;
+                        }
                     }
                 }
             }
@@ -146,12 +164,18 @@ Response Router::route(const Request& request) {
     // 3. SPA Fallback to index.html for unrecognized non-API GET routes
     if (!handled && request.method == "GET" && request.path.find("/api/") != 0 && !static_dir.empty()) {
         fs::path target = fs::weakly_canonical(fs::absolute(static_dir) / "index.html");
-        if (fs::exists(target)) {
+        if (auto cached = cache.get(target.string())) {
+            res = Response(200, *cached);
+            res.headers["Content-Type"] = "text/html";
+            handled = true;
+        } else if (fs::exists(target)) {
             std::ifstream file(target, std::ios::binary);
             if (file.is_open()) {
                 std::ostringstream ss;
                 ss << file.rdbuf();
-                res = Response(200, ss.str());
+                std::string content = ss.str();
+                cache.put(target.string(), content);
+                res = Response(200, content);
                 res.headers["Content-Type"] = "text/html";
                 handled = true;
             }
@@ -182,11 +206,11 @@ Response Router::forwardProxy(const Request& req, ProxyRoute& proxy) {
     auto now = std::chrono::steady_clock::now();
     for (size_t i = 0; i < proxy.backends.size(); ++i) {
         int idx = (proxy.next_rr_index + i) % proxy.backends.size();
-        auto& backend = proxy.backends[idx];
+        auto backend = proxy.backends[idx];
 
-        if (!backend.is_healthy) {
-            if (std::chrono::duration_cast<std::chrono::seconds>(now - backend.last_failed).count() > 10) {
-                backend.is_healthy = true;
+        if (!backend->is_healthy) {
+            if (std::chrono::duration_cast<std::chrono::seconds>(now - backend->last_failed).count() > 10) {
+                backend->is_healthy = true;
             } else {
                 continue; // Still unhealthy
             }
@@ -200,11 +224,11 @@ Response Router::forwardProxy(const Request& req, ProxyRoute& proxy) {
         setsockopt(sock, SOL_SOCKET, SO_RCVTIMEO, &tv, sizeof(tv));
         setsockopt(sock, SOL_SOCKET, SO_SNDTIMEO, &tv, sizeof(tv));
 
-        struct hostent *server = gethostbyname(backend.target_host.c_str());
+        struct hostent *server = gethostbyname(backend->target_host.c_str());
         if (server == nullptr) {
             close(sock);
-            backend.is_healthy = false;
-            backend.last_failed = std::chrono::steady_clock::now();
+            backend->is_healthy = false;
+            backend->last_failed = std::chrono::steady_clock::now();
             continue;
         }
 
@@ -212,24 +236,27 @@ Response Router::forwardProxy(const Request& req, ProxyRoute& proxy) {
         std::memset(&serv_addr, 0, sizeof(serv_addr));
         serv_addr.sin_family = AF_INET;
         std::memcpy(&serv_addr.sin_addr.s_addr, server->h_addr, server->h_length);
-        serv_addr.sin_port = htons(backend.target_port);
+        serv_addr.sin_port = htons(backend->target_port);
+
+        // Increment attempt
+        backend->req_count++;
+        proxy.next_rr_index = (idx + 1) % proxy.backends.size();
 
         if (connect(sock, (struct sockaddr *)&serv_addr, sizeof(serv_addr)) < 0) {
             close(sock);
-            backend.is_healthy = false;
-            backend.last_failed = std::chrono::steady_clock::now();
+            backend->is_healthy = false;
+            backend->last_failed = std::chrono::steady_clock::now();
             continue; 
         }
 
         // Connection successful!
-        proxy.next_rr_index = (idx + 1) % proxy.backends.size();
 
         // Serialize request
         std::ostringstream ss;
         ss << req.method << " " << req.path << " HTTP/1.1\r\n";
         for (const auto& h : req.headers) {
             if (h.first == "Host") {
-                ss << "Host: " << backend.target_host << ":" << backend.target_port << "\r\n";
+                ss << "Host: " << backend->target_host << ":" << backend->target_port << "\r\n";
             } else if (h.first != "Connection") {
                 ss << h.first << ": " << h.second << "\r\n";
             }
@@ -256,16 +283,19 @@ Response Router::forwardProxy(const Request& req, ProxyRoute& proxy) {
         close(sock);
 
         if (read_error && raw_resp.empty()) {
-            backend.is_healthy = false;
-            backend.last_failed = std::chrono::steady_clock::now();
+            backend->is_healthy = false;
+            backend->last_failed = std::chrono::steady_clock::now();
             continue;
         }
 
         if (raw_resp.empty()) {
-            backend.is_healthy = false;
-            backend.last_failed = std::chrono::steady_clock::now();
+            backend->is_healthy = false;
+            backend->last_failed = std::chrono::steady_clock::now();
             continue; 
         }
+
+        auto proxy_end_time = std::chrono::steady_clock::now();
+        backend->last_latency_ms = std::chrono::duration_cast<std::chrono::milliseconds>(proxy_end_time - now).count();
 
         // Parse minimal response (status and headers)
         Response res;

@@ -20,6 +20,7 @@ add_executable(http-server
     src/HttpParser.cpp 
     src/Router.cpp 
     src/Response.cpp
+    src/WorkerPool.cpp
     src/ThreadPool.cpp
     src/EpollServer.cpp
 )

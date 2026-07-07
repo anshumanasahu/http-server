@@ -1,6 +1,8 @@
 #pragma once
 #include <openssl/ssl.h>
 #include "Router.h"
+#include "WorkerPool.h"
+#include <memory>
 
 class EpollServer {
 public:
@@ -12,5 +14,6 @@ private:
     int tls_port_;
     Router& router_;
     SSL_CTX* ctx_;
+    WorkerPool thread_pool_;
     int make_socket_non_blocking(int sfd);
 };
