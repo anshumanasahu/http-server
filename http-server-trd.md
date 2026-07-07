@@ -230,3 +230,20 @@ Flat config file (JSON/TOML) or CLI flags covering: listen ports (plaintext/TLS)
 - Level-triggered vs. edge-triggered epoll (§4.2 recommends level-triggered for v1) — revisit only if you want the extra performance/complexity credibility as a stretch goal, per the PRD's risk table.
 - Round-robin vs. least-connections as the reverse proxy's default strategy (§7) — round-robin is simpler to reason about and sufficient for the demo; least-connections is the documented stretch goal.
 - Log I/O model (§9) — synchronous per-request logging is simplest and fine unless benchmarks show it affecting p99 latency, in which case an async bounded log queue is the fallback.
+
+---
+
+## 14. V2: Visual Dashboard & Interactivity
+
+To support the visual additions in V2, the following technical components must be built:
+
+### 14.1 Server-Sent Events (SSE) Extension
+Instead of the frontend aggressively polling `/api/metrics`, the C++ server will support SSE (`Content-Type: text/event-stream`). 
+- **Implementation:** The `Router` will hold open an SSE connection. A background metrics thread will periodically flush JSON metric updates to the `write_queue` of all active SSE connections.
+- **Challenge:** The Timeout Guard (§5) must be updated to exempt active SSE connections from the `WRITE_TIMEOUT`, since they are intentionally long-lived.
+
+### 14.2 Single Page Application (SPA) Routing Fallback
+- **Implementation:** The `Router` logic (§4) must be updated so that any `GET` request not matching an `/api/*` route (and not matching a specific static file) falls back to serving `/public/index.html`. This allows React Router (client-side routing) to handle frontend URLs without the C++ server returning a 404.
+
+### 14.3 Chaos APIs
+- **Implementation:** Add controlled API endpoints (e.g., `POST /api/chaos/slowloris`) that trigger internal background threads within the C++ process (or a separate python script) to simulate malicious client behavior, feeding immediate visual feedback to the dashboard.

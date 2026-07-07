@@ -44,6 +44,8 @@ struct Connection {
     // TLS state
     SSL* tls_session;
 
+    bool is_sse = false;
+
     Connection(int socket_fd, SSL* ssl = nullptr) 
         : fd(socket_fd), 
           parse_state(ParseState::REQUEST_LINE), 

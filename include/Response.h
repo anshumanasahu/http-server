@@ -7,6 +7,7 @@ public:
     int status_code;
     std::unordered_map<std::string, std::string> headers;
     std::string body;
+    bool is_sse = false;
 
     Response();
     Response(int code, const std::string& body_content = "");

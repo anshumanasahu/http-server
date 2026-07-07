@@ -230,3 +230,15 @@ Milestones 1–7 are the original spec and the load-bearing core — the C10K co
 - SO_REUSEPORT-based multi-process worker model for true multi-core scaling beyond a single event loop.
 - Least-connections and latency-aware load balancing strategies for the reverse proxy.
 - Rate limiting at the server layer — natural crossover with a standalone rate limiter project, if you build both.
+
+---
+
+## 12. V2: The "Visually Significant" Showcase (Resume Booster)
+
+While the C++ backend demonstrates deep systems mastery, it is largely invisible. To make this an undeniable primary resume project, V2 introduces a stunning, interactive frontend served directly by the C++ server. This bridges low-level network engineering with high-level visual excellence.
+
+### V2 Goals:
+- **Live Command Center Dashboard:** A React/Vite Single Page Application (SPA) with a dark-mode, glassmorphic UI. It connects to the server to display live metrics (active connections, requests/sec, latency histograms) using beautiful charting libraries.
+- **Visual Reverse Proxy Manager:** A visual topology map showing the C++ server routing requests to backend nodes. If a backend fails, the node turns red on the UI, visually demonstrating the proxy's fault tolerance and health checks in real-time.
+- **The "Chaos Sandbox":** An interactive UI panel designed for recruiters/users. With the click of a button, the user can launch a simulated Slowloris attack or a high-concurrency flood against the server, and instantly watch the server's defense mechanisms (timeouts, epoll event loop scaling) succeed on the live graphs.
+- **Eat Your Own Dog Food:** The C++ server will act as the production web server for this React app, serving its HTML/JS/CSS assets from the `/public` directory, proving its viability as a static asset server.
