@@ -78,8 +78,25 @@ void EpollServer::run() {
         int n = epoll_wait(epoll_fd, events, MAX_EVENTS, 1000);
         
         auto now = std::chrono::steady_clock::now();
+        
+        static auto last_sse_push = now;
+        if (now - last_sse_push > std::chrono::seconds(1)) {
+            std::string sse_data = "data: {\"active\": " + std::to_string(Metrics::getInstance().active_connections.load()) + 
+                                   ", \"requests\": " + std::to_string(Metrics::getInstance().total_requests.load()) + "}\n\n";
+            for (auto& pair : connections) {
+                if (pair.second->is_sse) {
+                    pair.second->write_queue.push(sse_data);
+                    struct epoll_event ev;
+                    ev.data.fd = pair.first;
+                    ev.events = EPOLLIN | EPOLLOUT;
+                    epoll_ctl(epoll_fd, EPOLL_CTL_MOD, pair.first, &ev);
+                }
+            }
+            last_sse_push = now;
+        }
+
         for (auto it = connections.begin(); it != connections.end(); ) {
-            if (std::chrono::duration_cast<std::chrono::seconds>(now - it->second->last_activity).count() > 10) {
+            if (!it->second->is_sse && std::chrono::duration_cast<std::chrono::seconds>(now - it->second->last_activity).count() > 10) {
                 std::cout << "[Epoll] Connection timeout on fd " << it->first << std::endl;
                 Metrics::getInstance().active_connections--;
                 delete it->second;
@@ -167,7 +184,7 @@ void EpollServer::run() {
                     }
 
                     bool should_close = false;
-                    while (true) {
+                    while (!conn->is_sse) {
                         ParseResult res = HttpParser::parse_incremental(*conn);
                         if (res == ParseResult::ERROR) {
                             should_close = true;
@@ -182,6 +199,8 @@ void EpollServer::run() {
                             conn->keep_alive = conn->current_request.isKeepAlive();
                             Response response = router_.route(conn->current_request);
                             response.headers["Connection"] = conn->keep_alive ? "keep-alive" : "close";
+                            
+                            conn->is_sse = response.is_sse;
                             
                             std::string serialized = response.serialize();
                             conn->write_queue.push(serialized);
@@ -198,7 +217,9 @@ void EpollServer::run() {
                                       << ", \"latency_us\": " << duration 
                                       << "}" << std::endl;
                             
-                            conn->reset_for_next_request();
+                            if (!conn->is_sse) {
+                                conn->reset_for_next_request();
+                            }
                             
                             event.data.fd = fd;
                             event.events = EPOLLIN | EPOLLOUT;

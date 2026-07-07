@@ -1,8 +1,8 @@
 #include <iostream>
 #include <sys/socket.h>
 #include <netinet/in.h>
+#include <arpa/inet.h>
 #include <unistd.h>
-#include <cstring>
 #include <string>
 #include <thread>
 #include <sstream>
@@ -183,6 +183,68 @@ int main(int argc, char* argv[]) {
         res.headers["Content-Type"] = "application/json";
         return res;
     });
+    
+    router.addRoute("GET", "/api/metrics/stream", [](const Request& req) {
+        Response res(200, "retry: 1000\n\n");
+        res.headers["Content-Type"] = "text/event-stream";
+        res.headers["Cache-Control"] = "no-cache";
+        res.headers.erase("Content-Length");
+        res.is_sse = true;
+        return res;
+    });
+
+    router.addRoute("POST", "/api/chaos/flood", [](const Request& req) {
+        std::thread([]() {
+            for (int t = 0; t < 50; ++t) {
+                std::thread([]() {
+                    for (int i = 0; i < 20; ++i) {
+                        int sock = socket(AF_INET, SOCK_STREAM, 0);
+                        struct sockaddr_in serv_addr;
+                        serv_addr.sin_family = AF_INET;
+                        serv_addr.sin_port = htons(8080);
+                        inet_pton(AF_INET, "127.0.0.1", &serv_addr.sin_addr);
+                        if (connect(sock, (struct sockaddr *)&serv_addr, sizeof(serv_addr)) == 0) {
+                            std::string request = "GET /api/status HTTP/1.1\r\nConnection: close\r\n\r\n";
+                            write(sock, request.c_str(), request.length());
+                            char buf[1024];
+                            read(sock, buf, sizeof(buf));
+                        }
+                        close(sock);
+                    }
+                }).detach();
+            }
+        }).detach();
+        Response res(200, "{\"status\": \"flood_initiated\"}");
+        res.headers["Content-Type"] = "application/json";
+        return res;
+    });
+
+    router.addRoute("POST", "/api/chaos/slowloris", [](const Request& req) {
+        std::thread([]() {
+            for (int t = 0; t < 100; ++t) {
+                std::thread([]() {
+                    int sock = socket(AF_INET, SOCK_STREAM, 0);
+                    struct sockaddr_in serv_addr;
+                    serv_addr.sin_family = AF_INET;
+                    serv_addr.sin_port = htons(8080);
+                    inet_pton(AF_INET, "127.0.0.1", &serv_addr.sin_addr);
+                    if (connect(sock, (struct sockaddr *)&serv_addr, sizeof(serv_addr)) == 0) {
+                        std::string request = "GET /api/status HTTP/1.1\r\n";
+                        write(sock, request.c_str(), request.length());
+                        for (int i = 0; i < 15; ++i) {
+                            sleep(2);
+                            write(sock, "X-Slow: 1\r\n", 11);
+                        }
+                    }
+                    close(sock);
+                }).detach();
+            }
+        }).detach();
+        Response res(200, "{\"status\": \"slowloris_initiated\"}");
+        res.headers["Content-Type"] = "application/json";
+        return res;
+    });
+
     router.addRoute("POST", "/api/echo", [](const Request& req) {
         Response res(200, req.body);
         res.headers["Content-Type"] = "application/json";

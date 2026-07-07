@@ -143,13 +143,28 @@ Response Router::route(const Request& request) {
         }
     }
     
+    // 3. SPA Fallback to index.html for unrecognized non-API GET routes
+    if (!handled && request.method == "GET" && request.path.find("/api/") != 0 && !static_dir.empty()) {
+        fs::path target = fs::weakly_canonical(fs::absolute(static_dir) / "index.html");
+        if (fs::exists(target)) {
+            std::ifstream file(target, std::ios::binary);
+            if (file.is_open()) {
+                std::ostringstream ss;
+                ss << file.rdbuf();
+                res = Response(200, ss.str());
+                res.headers["Content-Type"] = "text/html";
+                handled = true;
+            }
+        }
+    }
+    
     if (!handled) {
         res = Response(404, "404 Not Found\n");
     }
 
     // Compression Layer
     auto enc_it = request.headers.find("Accept-Encoding");
-    if (enc_it != request.headers.end() && enc_it->second.find("gzip") != std::string::npos) {
+    if (!res.is_sse && enc_it != request.headers.end() && enc_it->second.find("gzip") != std::string::npos) {
         // Don't compress small bodies or already compressed content
         if (res.body.length() > 50 && res.headers["Content-Type"].find("image") == std::string::npos) {
             res.body = compress_gzip(res.body);

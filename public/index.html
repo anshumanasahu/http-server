@@ -1,1 +1,97 @@
-<h1>Hello HTTP Server</h1>
+<!DOCTYPE html>
+<html lang="en" class="dark">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>HTTP Server | Command Center</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+    <script>
+        tailwind.config = {
+            darkMode: 'class',
+            theme: {
+                extend: {
+                    colors: {
+                        dark: '#0f172a',
+                        glass: 'rgba(30, 41, 59, 0.7)',
+                    }
+                }
+            }
+        }
+    </script>
+    <style>
+        body {
+            background: linear-gradient(135deg, #0f172a 0%, #1e1b4b 100%);
+            color: white;
+            min-height: 100vh;
+        }
+        .glass-panel {
+            background: rgba(30, 41, 59, 0.7);
+            backdrop-filter: blur(12px);
+            border: 1px solid rgba(255, 255, 255, 0.1);
+            box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.5);
+        }
+    </style>
+</head>
+<body class="p-8 font-sans">
+    <div class="max-w-6xl mx-auto space-y-6">
+        <header class="flex justify-between items-center pb-6 border-b border-white/10">
+            <div>
+                <h1 class="text-3xl font-bold text-transparent bg-clip-text bg-gradient-to-r from-blue-400 to-emerald-400">C++ Server Command Center</h1>
+                <p class="text-gray-400 mt-1">High-performance epoll event loop visualization</p>
+            </div>
+            <div class="flex items-center space-x-3 bg-green-500/10 px-4 py-2 rounded-full border border-green-500/20">
+                <div class="w-3 h-3 bg-green-500 rounded-full animate-pulse"></div>
+                <span class="text-green-400 font-medium">Server Online (SSE Connected)</span>
+            </div>
+        </header>
+
+        <div class="grid grid-cols-1 md:grid-cols-3 gap-6">
+            <!-- Key Metrics -->
+            <div class="glass-panel rounded-2xl p-6">
+                <h3 class="text-gray-400 text-sm uppercase tracking-wider font-semibold">Active Connections</h3>
+                <div class="text-5xl font-bold mt-2 text-blue-400" id="active-conn">0</div>
+            </div>
+            <div class="glass-panel rounded-2xl p-6">
+                <h3 class="text-gray-400 text-sm uppercase tracking-wider font-semibold">Total Requests</h3>
+                <div class="text-5xl font-bold mt-2 text-emerald-400" id="total-req">0</div>
+            </div>
+            <div class="glass-panel rounded-2xl p-6">
+                <h3 class="text-gray-400 text-sm uppercase tracking-wider font-semibold">Requests / Sec</h3>
+                <div class="text-5xl font-bold mt-2 text-purple-400" id="req-sec">0</div>
+            </div>
+        </div>
+
+        <div class="grid grid-cols-1 lg:grid-cols-3 gap-6">
+            <!-- Charts -->
+            <div class="glass-panel rounded-2xl p-6 lg:col-span-2">
+                <h3 class="text-lg font-semibold mb-4">Traffic Overview</h3>
+                <div class="h-64">
+                    <canvas id="trafficChart"></canvas>
+                </div>
+            </div>
+
+            <!-- Chaos Sandbox -->
+            <div class="glass-panel rounded-2xl p-6">
+                <h3 class="text-lg font-semibold mb-4 flex items-center">
+                    <span class="mr-2">⚡</span> Chaos Sandbox
+                </h3>
+                <p class="text-sm text-gray-400 mb-6">Test the C++ server's resilience in real-time by launching local DoS simulations.</p>
+                
+                <div class="space-y-4">
+                    <button onclick="triggerFlood()" class="w-full bg-blue-600 hover:bg-blue-500 text-white font-medium py-3 px-4 rounded-xl transition-all shadow-[0_0_15px_rgba(37,99,235,0.4)]">
+                        🌊 Simulate Traffic Flood (1k+ reqs)
+                    </button>
+                    <button onclick="triggerSlowloris()" class="w-full bg-orange-600 hover:bg-orange-500 text-white font-medium py-3 px-4 rounded-xl transition-all shadow-[0_0_15px_rgba(234,88,12,0.4)]">
+                        🐢 Simulate Slowloris Attack (100 conns)
+                    </button>
+                </div>
+                
+                <div id="attack-status" class="mt-4 text-sm font-medium text-center hidden"></div>
+            </div>
+        </div>
+    </div>
+    
+    <script src="/app.js"></script>
+</body>
+</html>

@@ -355,3 +355,52 @@ A single keep-alive HTTPS request to a static file, with compression, touches ne
 - Does the read-timeout clock reset on every byte received (rolling window), or only at state transitions (request line complete, headers complete)? The TRD implies rolling via `last_activity`, but it's worth pinning down explicitly since it changes how forgiving the Slowloris defense is.
 - For the epoll model's timeout sweep (min-heap of deadlines), how often does the sweep run relative to `epoll_wait`'s own timeout — is staleness checked every iteration or only when `epoll_wait` itself times out with no events?
 - In reverse proxy mode, does a backend health re-check happen on a fixed interval (active) or only opportunistically on the next request routed its way (passive) — the TRD leaves this as an either/or without a stated default.
+
+---
+
+## 12. V2: Visual Dashboard Flow Mechanics
+
+Once V2 (the Live Command Center) is introduced, two new significant operational flows occur:
+
+### 12.1 Server-Sent Events (SSE) Metric Streaming
+```text
+ React Frontend (Browser)
+        │
+        ▼
+ GET /api/metrics/stream
+        │
+        ▼
+ C++ Router matches route ──▶ Upgrades connection state to SSE
+        │
+        ▼
+ Timeout Guard (§5) ──▶ Exempts this fd from standard WRITE_TIMEOUT
+        │
+        ▼
+ Background Metrics Thread (fires every 1s)
+        │
+        ▼
+ Serializes live JSON stats ──▶ Pushes into Connection's write_queue
+        │
+        ▼
+ epoll loop flushes write_queue ──▶ Browser receives real-time update
+```
+
+### 12.2 SPA Static Routing Flow
+```text
+ User refreshes browser at https://server/dashboard/proxy-manager
+        │
+        ▼
+ C++ Router parses request path: /dashboard/proxy-manager
+        │
+        ├── Is it an /api/* route? ──▶ No.
+        ├── Does file exist in /public/dashboard/proxy-manager? ──▶ No.
+        │
+        ▼
+ SPA Fallback Triggered
+        │
+        ▼
+ Rewrites internal target to /public/index.html
+        │
+        ▼
+ Serves index.html with 200 OK ──▶ React Router takes over on client-side
+```
