@@ -5,6 +5,7 @@
 #include <queue>
 #include <chrono>
 #include <unistd.h>
+#include <mutex>
 #include <openssl/ssl.h>
 #include <openssl/err.h>
 #include "Request.h"
@@ -24,14 +25,26 @@ enum class ParseResult {
     ERROR
 };
 
+struct LifecycleTimings {
+    uint64_t t_accept_us = 0;
+    std::chrono::steady_clock::time_point parse_start;
+    std::chrono::steady_clock::time_point parse_end;
+    std::chrono::steady_clock::time_point route_start;
+    std::chrono::steady_clock::time_point route_end;
+    std::chrono::steady_clock::time_point write_start;
+};
+
 struct Connection {
     int fd;
     std::vector<char> read_buf;
+    std::mutex write_mutex;
     std::queue<std::string> write_queue;
     
     ParseState parse_state;
     Request current_request;
     bool keep_alive;
+    
+    LifecycleTimings timings;
     
     std::chrono::steady_clock::time_point last_activity;
     size_t headers_bytes_seen;
@@ -46,7 +59,7 @@ struct Connection {
 
     bool is_sse = false;
 
-    Connection(int socket_fd, SSL* ssl = nullptr) 
+    Connection(int socket_fd, uint64_t accept_us = 0, SSL* ssl = nullptr) 
         : fd(socket_fd), 
           parse_state(ParseState::REQUEST_LINE), 
           keep_alive(true),
@@ -56,6 +69,8 @@ struct Connection {
           reading_chunk_size(true),
           tls_session(ssl) {
         update_activity();
+        timings.t_accept_us = accept_us;
+        timings.parse_start = std::chrono::steady_clock::now();
     }
     
     ~Connection() {

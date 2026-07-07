@@ -88,7 +88,7 @@ void handle_connection(int client_socket, Router& router, SSL_CTX* ctx, bool is_
 
     Metrics::getInstance().active_connections++;
 
-    Connection conn(client_socket, ssl);
+    Connection conn(client_socket, 0, ssl);
     while (server_running && conn.keep_alive) {
         auto start_time = std::chrono::high_resolution_clock::now();
         // Try parsing whatever is already in the buffer
@@ -194,17 +194,23 @@ int main(int argc, char* argv[]) {
     });
 
     router.addRoute("POST", "/api/chaos/flood", [](const Request& req) {
-        std::thread([]() {
-            for (int t = 0; t < 50; ++t) {
-                std::thread([]() {
-                    for (int i = 0; i < 20; ++i) {
+        int t_val = 50, c_val = 20;
+        size_t t_pos = req.path.find("threads=");
+        if (t_pos != std::string::npos) t_val = std::stoi(req.path.substr(t_pos + 8));
+        size_t c_pos = req.path.find("conns=");
+        if (c_pos != std::string::npos) c_val = std::stoi(req.path.substr(c_pos + 6));
+        
+        std::thread([t_val, c_val]() {
+            for (int t = 0; t < t_val; ++t) {
+                std::thread([c_val]() {
+                    for (int i = 0; i < c_val; ++i) {
                         int sock = socket(AF_INET, SOCK_STREAM, 0);
                         struct sockaddr_in serv_addr;
                         serv_addr.sin_family = AF_INET;
                         serv_addr.sin_port = htons(8080);
                         inet_pton(AF_INET, "127.0.0.1", &serv_addr.sin_addr);
                         if (connect(sock, (struct sockaddr *)&serv_addr, sizeof(serv_addr)) == 0) {
-                            std::string request = "GET /api/status HTTP/1.1\r\nConnection: close\r\n\r\n";
+                            std::string request = "GET /proxy HTTP/1.1\r\nConnection: close\r\n\r\n";
                             write(sock, request.c_str(), request.length());
                             char buf[1024];
                             read(sock, buf, sizeof(buf));
@@ -220,9 +226,15 @@ int main(int argc, char* argv[]) {
     });
 
     router.addRoute("POST", "/api/chaos/slowloris", [](const Request& req) {
-        std::thread([]() {
-            for (int t = 0; t < 100; ++t) {
-                std::thread([]() {
+        int t_val = 100, c_val = 15;
+        size_t t_pos = req.path.find("threads=");
+        if (t_pos != std::string::npos) t_val = std::stoi(req.path.substr(t_pos + 8));
+        size_t c_pos = req.path.find("conns=");
+        if (c_pos != std::string::npos) c_val = std::stoi(req.path.substr(c_pos + 6));
+        
+        std::thread([t_val, c_val]() {
+            for (int t = 0; t < t_val; ++t) {
+                std::thread([c_val]() {
                     int sock = socket(AF_INET, SOCK_STREAM, 0);
                     struct sockaddr_in serv_addr;
                     serv_addr.sin_family = AF_INET;
@@ -231,7 +243,7 @@ int main(int argc, char* argv[]) {
                     if (connect(sock, (struct sockaddr *)&serv_addr, sizeof(serv_addr)) == 0) {
                         std::string request = "GET /api/status HTTP/1.1\r\n";
                         write(sock, request.c_str(), request.length());
-                        for (int i = 0; i < 15; ++i) {
+                        for (int i = 0; i < c_val; ++i) {
                             sleep(2);
                             write(sock, "X-Slow: 1\r\n", 11);
                         }
@@ -242,6 +254,38 @@ int main(int argc, char* argv[]) {
         }).detach();
         Response res(200, "{\"status\": \"slowloris_initiated\"}");
         res.headers["Content-Type"] = "application/json";
+        return res;
+    });
+
+    router.addRoute("POST", "/api/chaos/smuggle", [](const Request& req) {
+        std::thread([]() {
+            int sock = socket(AF_INET, SOCK_STREAM, 0);
+            struct sockaddr_in serv_addr;
+            serv_addr.sin_family = AF_INET;
+            serv_addr.sin_port = htons(8080);
+            inet_pton(AF_INET, "127.0.0.1", &serv_addr.sin_addr);
+            if (connect(sock, (struct sockaddr *)&serv_addr, sizeof(serv_addr)) == 0) {
+                std::string request = "POST /api/status HTTP/1.1\r\n"
+                                      "Host: localhost\r\n"
+                                      "Content-Length: 5\r\n"
+                                      "Content-Length: 10\r\n"
+                                      "\r\n12345";
+                write(sock, request.c_str(), request.length());
+                char buf[1024];
+                read(sock, buf, sizeof(buf));
+            }
+            close(sock);
+        }).detach();
+        Response res(200, "{\"status\": \"smuggle_initiated\"}");
+        res.headers["Content-Type"] = "application/json";
+        return res;
+    });
+
+    router.addRoute("POST", "/api/admin/shutdown", [](const Request& req) {
+        signal_handler(SIGTERM);
+        Response res(200, "{\"status\": \"shutting_down\"}");
+        res.headers["Content-Type"] = "application/json";
+        res.headers["Connection"] = "close";
         return res;
     });
 

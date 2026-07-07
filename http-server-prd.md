@@ -242,3 +242,16 @@ While the C++ backend demonstrates deep systems mastery, it is largely invisible
 - **Visual Reverse Proxy Manager:** A visual topology map showing the C++ server routing requests to backend nodes. If a backend fails, the node turns red on the UI, visually demonstrating the proxy's fault tolerance and health checks in real-time.
 - **The "Chaos Sandbox":** An interactive UI panel designed for recruiters/users. With the click of a button, the user can launch a simulated Slowloris attack or a high-concurrency flood against the server, and instantly watch the server's defense mechanisms (timeouts, epoll event loop scaling) succeed on the live graphs.
 - **Eat Your Own Dog Food:** The C++ server will act as the production web server for this React app, serving its HTML/JS/CSS assets from the `/public` directory, proving its viability as a static asset server.
+
+---
+
+## 13. V3: Enterprise Complexity (The Senior Engineer Showcase)
+
+While V1 built the foundational C++ engine and V2 added visual flair, V3 transforms the server into an enterprise-grade backend comparable to NGINX or HAProxy. These features push the system's complexity significantly, showcasing advanced multi-threading, algorithmic design, and distributed systems concepts.
+
+### V3 Proposed Features:
+1. **Thread Pool Offloading (Asynchronous Disk I/O):** Currently, reading a file from disk blocks the `epoll` event loop. We will implement a custom C++ `ThreadPool` using `std::thread`, `std::mutex`, and `std::condition_variable` with a concurrent task queue. The `epoll` loop will delegate blocking disk operations to background workers, ensuring 100% loop uptime.
+2. **In-Memory LRU Cache (Thread-Safe):** An algorithmic LRU (Least Recently Used) cache for static assets. Frequently requested files (`index.html`, `app.js`) are kept in RAM, bypassing the Thread Pool and disk entirely for blistering fast response times.
+3. **Token Bucket Rate Limiting (DDoS Defense):** A custom Token Bucket algorithm implemented per-IP address. The server will intelligently detect high-concurrency floods, immediately drop malicious IP connections (returning HTTP 429 Too Many Requests), and log the blocked attacks.
+4. **WebSocket Protocol Upgrade (RFC 6455):** Implementing the complex WebSocket handshake (SHA1 hashing, Base64 encoding) and bitwise binary frame parsing in C++ from scratch, converting our one-way SSE dashboard into a true bi-directional WebSocket application.
+5. **Reverse Proxy Load Balancer:** Transforming the C++ server into a reverse proxy that can route traffic dynamically to multiple backend instances using a Round-Robin algorithm.

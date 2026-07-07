@@ -9,3 +9,13 @@ services:
     volumes:
       - .:/app
     command: bash -c "bash scripts/gen_cert.sh && mkdir -p build && cd build && cmake .. && make && cd .. && ./build/http-server --concurrency=epoll"
+
+  backend_a:
+    image: nginx:alpine
+    ports:
+      - "9090:80"
+
+  backend_b:
+    image: nginx:alpine
+    ports:
+      - "9091:80"
