@@ -1,0 +1,21 @@
+# Build directory
+build/
+
+# Certificates (Private keys should NEVER be pushed to GitHub)
+certs/
+
+# Python virtual environment
+.venv/
+__pycache__/
+
+# Secrets
+secret.txt
+
+# Editor / OS files
+.vscode/
+.vs/
+.idea/
+.DS_Store
+*.suo
+*.user
+*.log

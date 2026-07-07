@@ -1,0 +1,11 @@
+version: '3.8'
+
+services:
+  server:
+    build: .
+    ports:
+      - "8080:8080"
+      - "8443:8443"
+    volumes:
+      - .:/app
+    command: bash -c "bash scripts/gen_cert.sh && mkdir -p build && cd build && cmake .. && make && cd .. && ./build/http-server --concurrency=epoll"
