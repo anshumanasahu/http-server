@@ -3,6 +3,7 @@
 #include <netinet/in.h>
 #include <arpa/inet.h>
 #include <unistd.h>
+#include <fcntl.h>
 #include <string>
 #include <thread>
 #include <sstream>
@@ -66,6 +67,39 @@ void configure_context(SSL_CTX *ctx) {
         ERR_print_errors_fp(stderr);
         exit(EXIT_FAILURE);
     }
+}
+
+int create_listening_socket(int port) {
+    int sfd = socket(AF_INET, SOCK_STREAM, 0);
+    if (sfd == -1) {
+        std::cerr << "Failed to create socket for port " << port << std::endl;
+        return -1;
+    }
+
+    int opt = 1;
+    if (setsockopt(sfd, SOL_SOCKET, SO_REUSEADDR | SO_REUSEPORT, &opt, sizeof(opt))) {
+        std::cerr << "setsockopt failed for port " << port << std::endl;
+        return -1;
+    }
+
+    int flags = fcntl(sfd, F_GETFL, 0);
+    if (flags != -1) fcntl(sfd, F_SETFL, flags | O_NONBLOCK);
+
+    struct sockaddr_in address;
+    address.sin_family = AF_INET;
+    address.sin_addr.s_addr = INADDR_ANY;
+    address.sin_port = htons(port);
+
+    if (bind(sfd, (struct sockaddr *)&address, sizeof(address)) < 0) {
+        std::cerr << "Bind failed for port " << port << std::endl;
+        return -1;
+    }
+    if (listen(sfd, 10000) < 0) {
+        std::cerr << "Listen failed for port " << port << std::endl;
+        return -1;
+    }
+
+    return sfd;
 }
 
 void handle_connection(int client_socket, Router& router, SSL_CTX* ctx, bool is_tls) {
@@ -166,6 +200,9 @@ int main(int argc, char* argv[]) {
     int addrlen = sizeof(address);
     const int PORT = 8080;
     const int TLS_PORT = 8443;
+    const int FTP_PORT = 21;
+    const int SMTP_PORT = 25;
+    const int IMAP_PORT = 143;
 
     Router router;
     router.setStaticDirectory("./public");
@@ -210,7 +247,7 @@ int main(int argc, char* argv[]) {
                         serv_addr.sin_port = htons(8080);
                         inet_pton(AF_INET, "127.0.0.1", &serv_addr.sin_addr);
                         if (connect(sock, (struct sockaddr *)&serv_addr, sizeof(serv_addr)) == 0) {
-                            std::string request = "GET /proxy HTTP/1.1\r\nConnection: close\r\n\r\n";
+                            std::string request = "GET /proxy HTTP/1.1\r\nHost: localhost\r\nConnection: close\r\n\r\n";
                             write(sock, request.c_str(), request.length());
                             char buf[1024];
                             read(sock, buf, sizeof(buf));
@@ -241,7 +278,7 @@ int main(int argc, char* argv[]) {
                     serv_addr.sin_port = htons(8080);
                     inet_pton(AF_INET, "127.0.0.1", &serv_addr.sin_addr);
                     if (connect(sock, (struct sockaddr *)&serv_addr, sizeof(serv_addr)) == 0) {
-                        std::string request = "GET /api/status HTTP/1.1\r\n";
+                        std::string request = "GET /api/status HTTP/1.1\r\nHost: localhost\r\n";
                         write(sock, request.c_str(), request.length());
                         for (int i = 0; i < c_val; ++i) {
                             sleep(2);
@@ -300,8 +337,24 @@ int main(int argc, char* argv[]) {
     });
 
     if (concurrency_mode == "epoll") {
-        std::cout << "Starting server in epoll mode on port " << PORT << " and TLS " << TLS_PORT << std::endl;
-        EpollServer epoll_server(PORT, TLS_PORT, router, ctx);
+        std::vector<ListenerConfig> listeners;
+        
+        int http_fd = create_listening_socket(PORT);
+        if (http_fd != -1) listeners.push_back({http_fd, PORT, ProtocolType::HTTP, false});
+        
+        int tls_fd = create_listening_socket(TLS_PORT);
+        if (tls_fd != -1) listeners.push_back({tls_fd, TLS_PORT, ProtocolType::HTTP, true});
+        
+        int ftp_fd = create_listening_socket(FTP_PORT);
+        if (ftp_fd != -1) listeners.push_back({ftp_fd, FTP_PORT, ProtocolType::FTP, false});
+        
+        int smtp_fd = create_listening_socket(SMTP_PORT);
+        if (smtp_fd != -1) listeners.push_back({smtp_fd, SMTP_PORT, ProtocolType::SMTP, false});
+        
+        int imap_fd = create_listening_socket(IMAP_PORT);
+        if (imap_fd != -1) listeners.push_back({imap_fd, IMAP_PORT, ProtocolType::IMAP, false});
+        
+        EpollServer epoll_server(listeners, router, ctx);
         epoll_server.run();
         cleanup_openssl();
         return 0;

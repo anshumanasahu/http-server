@@ -30,186 +30,205 @@
         </header>
 
         <div class="grid grid-cols-1 lg:grid-cols-4 gap-6">
-            <!-- Left Column: Diagrams & Pipeline -->
-            <div class="space-y-6 lg:col-span-1">
-                <!-- HTTP Request Pipeline -->
-                <div class="glass-panel rounded-2xl p-6">
-                    <h3 class="text-lg font-semibold mb-4 text-blue-300">HTTP Request Pipeline</h3>
-                    <div class="space-y-2 text-sm">
-                        <div class="flex flex-col p-2 rounded bg-white/5 transition-colors duration-300" id="pipe-accept">
-                            <div class="flex justify-between items-center">
-                                <span>1. Accept (epoll)</span> <span id="t-accept" class="text-xs text-blue-400 font-mono">0µs</span>
-                            </div>
-                        </div>
-                        <div class="flex flex-col p-2 rounded bg-white/5 transition-colors duration-300" id="pipe-parse">
-                            <div class="flex justify-between items-center">
-                                <span>2. HTTP Parse</span> <span id="t-parse" class="text-xs text-emerald-400 font-mono">0µs</span>
-                            </div>
-                        </div>
-                        <div class="flex flex-col p-2 rounded bg-white/5 transition-colors duration-300" id="pipe-route">
-                            <div class="flex justify-between items-center">
-                                <span>3. Route (WorkerPool)</span> <span id="t-route" class="text-xs text-purple-400 font-mono">0µs</span>
-                            </div>
+            
+            <!-- ROW 1 -->
+            <!-- HTTP Request Pipeline -->
+            <div class="glass-panel rounded-2xl p-6 lg:col-span-1 flex flex-col justify-between">
+                <h3 class="text-lg font-semibold mb-4 text-blue-300">HTTP Request Pipeline</h3>
+                <div class="space-y-2 text-sm flex-1 flex flex-col justify-center">
+                    <div class="flex flex-col p-2 rounded bg-white/5 transition-colors duration-300" id="pipe-accept">
+                        <div class="flex justify-between items-center">
+                            <span>1. Accept (epoll)</span> <span id="t-accept" class="text-xs text-blue-400 font-mono">0µs</span>
                         </div>
                     </div>
-                </div>
-
-                <!-- TCP State -->
-                <div class="glass-panel rounded-2xl p-6">
-                    <h3 class="text-lg font-semibold mb-4 text-teal-300">TCP Connection Pool</h3>
-                    <div class="space-y-3 text-sm">
+                    <div class="flex flex-col p-2 rounded bg-white/5 transition-colors duration-300" id="pipe-parse">
                         <div class="flex justify-between items-center">
-                            <span class="text-gray-300">ESTABLISHED</span>
-                            <span id="tcp-est" class="font-mono text-emerald-400 font-bold bg-emerald-900/40 px-2 py-0.5 rounded">0</span>
-                        </div>
-                        <div class="flex justify-between items-center">
-                            <span class="text-gray-300">TIME_WAIT</span>
-                            <span id="tcp-tw" class="font-mono text-yellow-400 font-bold bg-yellow-900/40 px-2 py-0.5 rounded">0</span>
-                        </div>
-                        <div class="flex justify-between items-center">
-                            <span class="text-gray-300">Keep-Alive Hits</span>
-                            <span id="tcp-ka" class="font-mono text-blue-400 font-bold bg-blue-900/40 px-2 py-0.5 rounded">0</span>
-                        </div>
-                        <div class="flex justify-between items-center">
-                            <span class="text-gray-300">New Conns</span>
-                            <span id="tcp-new" class="font-mono text-purple-400 font-bold bg-purple-900/40 px-2 py-0.5 rounded">0</span>
+                            <span>2. HTTP Parse</span> <span id="t-parse" class="text-xs text-emerald-400 font-mono">0µs</span>
                         </div>
                     </div>
-                </div>
-
-                <!-- Concurrency / Threads -->
-                <div class="glass-panel rounded-2xl p-6">
-                    <h3 class="text-lg font-semibold mb-4 text-purple-300">WorkerPool Queue</h3>
-                    <div class="mb-2 flex justify-between text-sm">
-                        <span class="text-gray-400">Queue Depth</span>
-                        <span id="queue-depth" class="font-mono text-purple-400">0</span>
-                    </div>
-                    <div class="w-full bg-gray-700 rounded-full h-2.5">
-                        <div id="queue-bar" class="bg-purple-500 h-2.5 rounded-full transition-all duration-300" style="width: 0%"></div>
+                    <div class="flex flex-col p-2 rounded bg-white/5 transition-colors duration-300" id="pipe-route">
+                        <div class="flex justify-between items-center">
+                            <span>3. Route (WorkerPool)</span> <span id="t-route" class="text-xs text-purple-400 font-mono">0µs</span>
+                        </div>
                     </div>
                 </div>
             </div>
 
-            <!-- Middle Column: Proxy & Control -->
-            <div class="space-y-6 lg:col-span-1">
-                <!-- Reverse Proxy Topology -->
-                <div class="glass-panel rounded-2xl p-6">
-                    <h3 class="text-lg font-semibold mb-4 text-orange-300">Reverse Proxy Topology</h3>
-                    <div class="relative bg-black/30 rounded-xl p-4 border border-white/5 h-48 flex flex-col justify-between">
-                        <!-- Client -->
-                        <div class="flex justify-center z-10 relative">
-                            <div class="bg-blue-900 border border-blue-400 text-xs px-3 py-1 rounded shadow-lg text-blue-200">Client</div>
-                        </div>
-                        <!-- Wires -->
-                        <div class="absolute inset-0 flex items-center justify-center">
-                            <div class="w-full h-full relative">
-                                <svg class="absolute inset-0 w-full h-full" style="z-index:0">
-                                    <path d="M 50% 25px L 50% 90px" stroke="rgba(255,255,255,0.1)" stroke-width="2" fill="none" />
-                                    <path d="M 50% 90px L 25% 150px" stroke="rgba(255,255,255,0.1)" stroke-width="2" fill="none" id="wire-node-0" />
-                                    <path d="M 50% 90px L 75% 150px" stroke="rgba(255,255,255,0.1)" stroke-width="2" fill="none" id="wire-node-1" />
-                                </svg>
-                                <!-- Animated dots will be injected via JS -->
-                                <div id="proxy-animations"></div>
-                            </div>
-                        </div>
-                        <!-- Server -->
-                        <div class="flex justify-center z-10 relative">
-                            <div class="bg-emerald-900 border border-emerald-400 text-xs px-3 py-1 rounded shadow-lg text-emerald-200">C++ Server (Round-Robin)</div>
-                        </div>
-                        <!-- Backends -->
-                        <div class="flex justify-between px-2 z-10 relative" id="proxy-nodes-container">
-                            <div class="flex flex-col items-center">
-                                <div class="bg-gray-800 border border-gray-600 text-xs px-2 py-1 rounded text-gray-400 mb-1">Backend A</div>
-                                <div class="text-[10px] text-gray-500 font-mono">0 reqs</div>
-                            </div>
-                            <div class="flex flex-col items-center">
-                                <div class="bg-gray-800 border border-gray-600 text-xs px-2 py-1 rounded text-gray-400 mb-1">Backend B</div>
-                                <div class="text-[10px] text-gray-500 font-mono">0 reqs</div>
-                            </div>
+            <!-- Reverse Proxy Topology -->
+            <div class="glass-panel rounded-2xl p-6 lg:col-span-1 flex flex-col justify-between">
+                <h3 class="text-lg font-semibold mb-4 text-orange-300">Reverse Proxy Topology</h3>
+                <div class="relative bg-black/30 rounded-xl p-4 border border-white/5 h-48 flex flex-col justify-between">
+                    <!-- Client -->
+                    <div class="flex justify-center z-10 relative">
+                        <div class="bg-blue-900 border border-blue-400 text-xs px-3 py-1 rounded shadow-lg text-blue-200">Client</div>
+                    </div>
+                    <!-- Wires -->
+                    <div class="absolute inset-0 flex items-center justify-center">
+                        <div class="w-full h-full relative">
+                            <svg class="absolute inset-0 w-full h-full" style="z-index:0">
+                                <path d="M 50% 25px L 50% 90px" stroke="rgba(255,255,255,0.1)" stroke-width="2" fill="none" />
+                                <path d="M 50% 90px L 25% 150px" stroke="rgba(255,255,255,0.1)" stroke-width="2" fill="none" id="wire-node-0" />
+                                <path d="M 50% 90px L 75% 150px" stroke="rgba(255,255,255,0.1)" stroke-width="2" fill="none" id="wire-node-1" />
+                            </svg>
+                            <!-- Animated dots will be injected via JS -->
+                            <div id="proxy-animations"></div>
                         </div>
                     </div>
-                </div>
-
-                <!-- Security / Chaos with Benchmark controls -->
-                <div class="glass-panel rounded-2xl p-6 border-red-500/20">
-                    <h3 class="text-lg font-semibold mb-4 text-red-400 flex items-center">Chaos Sandbox</h3>
-                    
-                    <div class="space-y-4 mb-5">
-                        <div>
-                            <div class="flex justify-between text-xs text-gray-400 mb-1">
-                                <span>Threads (Concurrency)</span>
-                                <span id="val-threads" class="text-white font-mono">50</span>
-                            </div>
-                            <input type="range" id="slider-threads" min="1" max="200" value="50" class="w-full h-1 bg-gray-700 rounded-lg appearance-none cursor-pointer" oninput="document.getElementById('val-threads').innerText = this.value">
-                        </div>
-                        <div>
-                            <div class="flex justify-between text-xs text-gray-400 mb-1">
-                                <span>Connections per Thread</span>
-                                <span id="val-conns" class="text-white font-mono">20</span>
-                            </div>
-                            <input type="range" id="slider-conns" min="1" max="100" value="20" class="w-full h-1 bg-gray-700 rounded-lg appearance-none cursor-pointer" oninput="document.getElementById('val-conns').innerText = this.value">
-                        </div>
+                    <!-- Server -->
+                    <div class="flex justify-center z-10 relative">
+                        <div class="bg-emerald-900 border border-emerald-400 text-xs px-3 py-1 rounded shadow-lg text-emerald-200">C++ Server (Round-Robin)</div>
                     </div>
-
-                    <div class="grid grid-cols-2 gap-4 mb-4 text-center">
-                        <div class="bg-black/20 p-2 rounded-lg">
-                            <div class="text-xl font-bold text-red-500" id="blocked-count">0</div>
-                            <div class="text-[10px] text-gray-400 uppercase mt-1">429 Blocked</div>
+                    <!-- Backends -->
+                    <div class="flex justify-between px-2 z-10 relative" id="proxy-nodes-container">
+                        <div class="flex flex-col items-center">
+                            <div class="bg-gray-800 border border-gray-600 text-xs px-2 py-1 rounded text-gray-400 mb-1">Backend A</div>
+                            <div class="text-[10px] text-gray-500 font-mono">0 reqs</div>
                         </div>
-                        <div class="bg-black/20 p-2 rounded-lg flex flex-col justify-center">
-                            <div class="text-xs font-semibold text-emerald-400">Token Bucket</div>
-                            <div class="text-[10px] text-gray-400">50 req/sec</div>
+                        <div class="flex flex-col items-center">
+                            <div class="bg-gray-800 border border-gray-600 text-xs px-2 py-1 rounded text-gray-400 mb-1">Backend B</div>
+                            <div class="text-[10px] text-gray-500 font-mono">0 reqs</div>
                         </div>
-                    </div>
-                    <div class="space-y-2">
-                        <button onclick="triggerFlood()" class="w-full bg-blue-600/80 hover:bg-blue-500 text-white text-xs font-medium py-2 px-3 rounded-xl transition-all">🌊 Sim Traffic Burst</button>
-                        <button onclick="triggerSlowloris()" class="w-full bg-orange-600/80 hover:bg-orange-500 text-white text-xs font-medium py-2 px-3 rounded-xl transition-all">🐢 Sim Slowloris</button>
-                        <button onclick="triggerSmuggle()" class="w-full bg-red-600/80 hover:bg-red-500 text-white text-xs font-medium py-2 px-3 rounded-xl transition-all">🚨 Smuggle Request</button>
-                        <button onclick="triggerShutdown()" class="w-full bg-gray-600/80 hover:bg-gray-500 text-white text-xs font-medium py-2 px-3 rounded-xl transition-all border border-gray-400">🛑 Graceful Shutdown (SIGTERM)</button>
                     </div>
                 </div>
             </div>
 
-            <!-- Right Column: Charts & Logs (col-span-2) -->
-            <div class="space-y-6 lg:col-span-2 flex flex-col">
-                <!-- Performance Charts -->
-                <div class="glass-panel rounded-2xl p-6">
-                    <div class="flex justify-between items-center mb-4">
-                        <h3 class="text-lg font-semibold text-emerald-300">Throughput & Capacity</h3>
-                        <div class="flex space-x-4 text-sm bg-black/20 px-4 py-1.5 rounded-lg">
-                            <div>RPS: <span id="rps-count" class="font-mono font-bold text-emerald-400">0</span></div>
-                            <div class="text-gray-500">|</div>
-                            <div>Active FDs: <span id="active-conn" class="font-mono font-bold text-blue-400">0</span></div>
-                        </div>
-                    </div>
-                    <div class="h-48">
-                        <canvas id="trafficChart"></canvas>
+            <!-- Throughput & Capacity -->
+            <div class="glass-panel rounded-2xl p-6 lg:col-span-2 flex flex-col justify-between">
+                <div class="flex justify-between items-center mb-4">
+                    <h3 class="text-lg font-semibold text-emerald-300">Throughput & Capacity</h3>
+                    <div class="flex space-x-4 text-sm bg-black/20 px-4 py-1.5 rounded-lg">
+                        <div>RPS: <span id="rps-count" class="font-mono font-bold text-emerald-400">0</span></div>
+                        <div class="text-gray-500">|</div>
+                        <div>Active FDs: <span id="active-conn" class="font-mono font-bold text-blue-400">0</span></div>
                     </div>
                 </div>
-
-                <!-- Split: Method Breakdown & Latency Histogram -->
-                <div class="grid grid-cols-2 gap-6 relative">
-                    <div id="charts-fallback" class="absolute inset-0 flex items-center justify-center bg-slate-900/80 backdrop-blur-sm rounded-2xl z-10 transition-opacity duration-300">
-                        <div class="text-gray-400 italic">Waiting for request data...</div>
-                    </div>
-                    <div class="glass-panel rounded-2xl p-6">
-                        <h3 class="text-sm font-semibold text-gray-300 mb-2">HTTP Methods</h3>
-                        <div class="h-32"><canvas id="methodChart"></canvas></div>
-                    </div>
-                    <div class="glass-panel rounded-2xl p-6">
-                        <h3 class="text-sm font-semibold text-gray-300 mb-2">Latency Distribution (ms)</h3>
-                        <div class="h-32"><canvas id="latencyChart"></canvas></div>
-                    </div>
+                <div class="h-48 w-full flex-1 relative">
+                    <canvas id="trafficChart"></canvas>
                 </div>
+            </div>
 
-                <!-- Live Logs Tail -->
-                <div class="glass-panel rounded-2xl p-6 flex flex-col flex-1 min-h-[200px]">
-                    <h3 class="text-sm font-semibold text-gray-300 mb-3">Live Access Logs</h3>
-                    <div id="log-tail" class="flex-1 overflow-y-auto bg-black/40 rounded-lg p-3 log-container text-xs space-y-1 border border-white/5 shadow-inner">
-                        <div class="text-gray-500 italic" id="log-fallback">Waiting for requests...</div>
+            <!-- ROW 2 -->
+            <!-- TCP State -->
+            <div class="glass-panel rounded-2xl p-6 lg:col-span-1 flex flex-col justify-center">
+                <h3 class="text-lg font-semibold mb-4 text-teal-300">TCP Connection Pool</h3>
+                <div class="space-y-3 text-sm">
+                    <div class="flex justify-between items-center">
+                        <span class="text-gray-300">ESTABLISHED</span>
+                        <span id="tcp-est" class="font-mono text-emerald-400 font-bold bg-emerald-900/40 px-2 py-0.5 rounded">0</span>
+                    </div>
+                    <div class="flex justify-between items-center">
+                        <span class="text-gray-300">TIME_WAIT</span>
+                        <span id="tcp-tw" class="font-mono text-yellow-400 font-bold bg-yellow-900/40 px-2 py-0.5 rounded">0</span>
+                    </div>
+                    <div class="flex justify-between items-center">
+                        <span class="text-gray-300">Keep-Alive Hits</span>
+                        <span id="tcp-ka" class="font-mono text-blue-400 font-bold bg-blue-900/40 px-2 py-0.5 rounded">0</span>
+                    </div>
+                    <div class="flex justify-between items-center">
+                        <span class="text-gray-300">New Conns</span>
+                        <span id="tcp-new" class="font-mono text-purple-400 font-bold bg-purple-900/40 px-2 py-0.5 rounded">0</span>
                     </div>
                 </div>
             </div>
+
+            <!-- Chaos Sandbox (Spans 2 Rows vertically) -->
+            <div class="glass-panel rounded-2xl p-6 border-red-500/20 lg:col-span-1 lg:row-span-2 flex flex-col justify-between">
+                <h3 class="text-lg font-semibold mb-4 text-red-400 flex items-center">Chaos Sandbox</h3>
+                
+                <div class="space-y-4 mb-5">
+                    <div>
+                        <div class="flex justify-between text-xs text-gray-400 mb-1">
+                            <span>Threads (Concurrency)</span>
+                            <span id="val-threads" class="text-white font-mono">50</span>
+                        </div>
+                        <input type="range" id="slider-threads" min="1" max="200" value="50" class="w-full h-1 bg-gray-700 rounded-lg appearance-none cursor-pointer" oninput="document.getElementById('val-threads').innerText = this.value">
+                    </div>
+                    <div>
+                        <div class="flex justify-between text-xs text-gray-400 mb-1">
+                            <span>Connections per Thread</span>
+                            <span id="val-conns" class="text-white font-mono">20</span>
+                        </div>
+                        <input type="range" id="slider-conns" min="1" max="100" value="20" class="w-full h-1 bg-gray-700 rounded-lg appearance-none cursor-pointer" oninput="document.getElementById('val-conns').innerText = this.value">
+                    </div>
+                </div>
+
+                <div class="grid grid-cols-2 gap-4 mb-4 text-center">
+                    <div class="bg-black/20 p-2 rounded-lg">
+                        <div class="text-xl font-bold text-red-500" id="blocked-count">0</div>
+                        <div class="text-[10px] text-gray-400 uppercase mt-1">429 Blocked</div>
+                    </div>
+                    <div class="bg-black/20 p-2 rounded-lg flex flex-col justify-center">
+                        <div class="text-xs font-semibold text-emerald-400">Token Bucket</div>
+                        <div class="text-[10px] text-gray-400">50 req/sec</div>
+                    </div>
+                </div>
+                <div class="space-y-2 mt-auto">
+                    <button onclick="triggerFlood()" class="w-full bg-blue-600/80 hover:bg-blue-500 text-white text-xs font-medium py-2 px-3 rounded-xl transition-all">🌊 Sim Traffic Burst</button>
+                    <button onclick="triggerSlowloris()" class="w-full bg-orange-600/80 hover:bg-orange-500 text-white text-xs font-medium py-2 px-3 rounded-xl transition-all">🐢 Sim Slowloris</button>
+                    <button onclick="triggerSmuggle()" class="w-full bg-red-600/80 hover:bg-red-500 text-white text-xs font-medium py-2 px-3 rounded-xl transition-all">🚨 Smuggle Request</button>
+                    <button onclick="triggerShutdown()" class="w-full bg-gray-600/80 hover:bg-gray-500 text-white text-xs font-medium py-2 px-3 rounded-xl transition-all border border-gray-400">🛑 Graceful Shutdown (SIGTERM)</button>
+                </div>
+            </div>
+
+            <!-- HTTP Methods -->
+            <div class="glass-panel rounded-2xl p-6 lg:col-span-1 flex flex-col relative">
+                <div id="charts-fallback" class="absolute inset-0 flex items-center justify-center bg-slate-900/80 backdrop-blur-sm rounded-2xl z-10 transition-opacity duration-300">
+                    <div class="text-gray-400 italic text-sm">Waiting for request data...</div>
+                </div>
+                <h3 class="text-sm font-semibold text-gray-300 mb-2">HTTP Methods</h3>
+                <div class="flex-1 min-h-[128px] relative"><canvas id="methodChart"></canvas></div>
+            </div>
+
+            <!-- Latency Distribution -->
+            <div class="glass-panel rounded-2xl p-6 lg:col-span-1 flex flex-col">
+                <h3 class="text-sm font-semibold text-gray-300 mb-2">Latency Distribution (ms)</h3>
+                <div class="flex-1 min-h-[128px] relative"><canvas id="latencyChart"></canvas></div>
+            </div>
+
+            <!-- ROW 3 -->
+            <!-- WorkerPool Queue -->
+            <div class="glass-panel rounded-2xl p-6 lg:col-span-1 flex flex-col justify-center">
+                <h3 class="text-lg font-semibold mb-4 text-purple-300">WorkerPool Queue</h3>
+                <div class="mb-2 flex justify-between text-sm">
+                    <span class="text-gray-400">Queue Depth</span>
+                    <span id="queue-depth" class="font-mono text-purple-400">0</span>
+                </div>
+                <div class="w-full bg-gray-700 rounded-full h-2.5">
+                    <div id="queue-bar" class="bg-purple-500 h-2.5 rounded-full transition-all duration-300" style="width: 0%"></div>
+                </div>
+            </div>
+
+            <!-- Live Access Logs -->
+            <div class="glass-panel rounded-2xl p-6 flex flex-col lg:col-span-2 relative min-h-[200px]">
+                <h3 class="text-sm font-semibold text-gray-300 mb-3">Live Access Logs</h3>
+                <div id="log-tail" class="absolute left-6 right-6 bottom-6 top-14 overflow-y-auto bg-black/40 rounded-lg p-3 log-container text-xs space-y-1 border border-white/5 shadow-inner">
+                    <div class="text-gray-500 italic" id="log-fallback">Waiting for requests...</div>
+                </div>
+            </div>
+
+            <!-- ROW 4 -->
+            <div class="glass-panel rounded-2xl p-6 lg:col-span-4 flex flex-col justify-center">
+                <h3 class="text-lg font-semibold mb-4 text-pink-300">Multi-Protocol Traffic</h3>
+                <div class="grid grid-cols-2 md:grid-cols-4 gap-4 text-center">
+                    <div class="bg-black/20 p-4 rounded-xl border border-white/5 shadow-inner">
+                        <div class="text-3xl font-bold text-blue-400 font-mono" id="proto-http">0</div>
+                        <div class="text-xs text-gray-400 uppercase mt-1 tracking-wider">HTTP Requests</div>
+                    </div>
+                    <div class="bg-black/20 p-4 rounded-xl border border-white/5 shadow-inner">
+                        <div class="text-3xl font-bold text-orange-400 font-mono" id="proto-ftp">0</div>
+                        <div class="text-xs text-gray-400 uppercase mt-1 tracking-wider">FTP Commands</div>
+                    </div>
+                    <div class="bg-black/20 p-4 rounded-xl border border-white/5 shadow-inner">
+                        <div class="text-3xl font-bold text-yellow-400 font-mono" id="proto-smtp">0</div>
+                        <div class="text-xs text-gray-400 uppercase mt-1 tracking-wider">SMTP Emails</div>
+                    </div>
+                    <div class="bg-black/20 p-4 rounded-xl border border-white/5 shadow-inner">
+                        <div class="text-3xl font-bold text-emerald-400 font-mono" id="proto-imap">0</div>
+                        <div class="text-xs text-gray-400 uppercase mt-1 tracking-wider">IMAP Commands</div>
+                    </div>
+                </div>
+            </div>
+
         </div>
     </div>
     <script src="/app.js"></script>

@@ -8,7 +8,10 @@
 #include <mutex>
 #include <openssl/ssl.h>
 #include <openssl/err.h>
+#include <memory>
 #include "Request.h"
+
+class ProtocolHandler;
 
 enum class ParseState {
     REQUEST_LINE,
@@ -43,6 +46,8 @@ struct Connection {
     ParseState parse_state;
     Request current_request;
     bool keep_alive;
+    bool marked_for_close;
+    std::shared_ptr<ProtocolHandler> handler;
     
     LifecycleTimings timings;
     
@@ -63,6 +68,7 @@ struct Connection {
         : fd(socket_fd), 
           parse_state(ParseState::REQUEST_LINE), 
           keep_alive(true),
+          marked_for_close(false),
           headers_bytes_seen(0),
           header_count(0),
           chunk_bytes_left(0),
