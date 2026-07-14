@@ -14,6 +14,12 @@ struct Metrics {
     std::atomic<uint64_t> keep_alive_hits{0};
     std::atomic<uint64_t> new_connections{0};
 
+    // Multi-protocol counters
+    std::atomic<long long> http_requests{0};
+    std::atomic<long long> ftp_commands{0};
+    std::atomic<long long> smtp_emails{0};
+    std::atomic<long long> imap_commands{0};
+
     std::deque<std::string> recent_logs;
     std::mutex logs_mutex;
 

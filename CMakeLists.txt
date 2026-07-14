@@ -23,6 +23,10 @@ add_executable(http-server
     src/WorkerPool.cpp
     src/ThreadPool.cpp
     src/EpollServer.cpp
+    src/HttpHandler.cpp
+    src/SmtpHandler.cpp
+    src/FtpHandler.cpp
+    src/ImapHandler.cpp
 )
 
 # Link libraries

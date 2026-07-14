@@ -159,10 +159,20 @@ evtSource.onmessage = function(event) {
     if (data.tcp_states) {
         if (data.tcp_states.ESTABLISHED !== undefined) tcpEstEl.innerText = data.tcp_states.ESTABLISHED;
         if (data.tcp_states.TIME_WAIT !== undefined) tcpTwEl.innerText = data.tcp_states.TIME_WAIT;
-    }
-    tcpKaEl.innerText = data.keep_alive_hits || 0;
-    tcpNewEl.innerText = data.new_connections || 0;
+        document.getElementById('tcp-ka').innerText = data.keep_alive_hits;
+        document.getElementById('tcp-new').innerText = data.new_connections;
 
+        // Protocol Counters
+        if (document.getElementById('proto-http')) {
+            document.getElementById('proto-http').innerText = data.http_requests || 0;
+            document.getElementById('proto-ftp').innerText = data.ftp_commands || 0;
+            document.getElementById('proto-smtp').innerText = data.smtp_emails || 0;
+            document.getElementById('proto-imap').innerText = data.imap_commands || 0;
+        }
+
+        // Live Logs
+    }
+    
     let avgAccept = 0, avgParse = 0, avgRoute = 0;
     let timingCount = 0;
 

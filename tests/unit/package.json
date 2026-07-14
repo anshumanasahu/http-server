@@ -1,0 +1,15 @@
+{
+  "name": "dashboard-unit-tests",
+  "version": "1.0.0",
+  "description": "Jest Unit Tests for the dashboard UI",
+  "scripts": {
+    "test": "jest"
+  },
+  "devDependencies": {
+    "jest": "^29.7.0",
+    "jest-environment-jsdom": "^29.7.0"
+  },
+  "jest": {
+    "testEnvironment": "jsdom"
+  }
+}
