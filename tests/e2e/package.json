@@ -1,0 +1,11 @@
+{
+  "name": "dashboard-e2e-tests",
+  "version": "1.0.0",
+  "description": "E2E tests for the HTTP Server Dashboard",
+  "scripts": {
+    "test": "playwright test"
+  },
+  "devDependencies": {
+    "@playwright/test": "^1.40.0"
+  }
+}
